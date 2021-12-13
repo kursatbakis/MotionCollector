@@ -12,6 +12,10 @@ import CoreData
 import WatchConnectivity
 
 
+extension Notification.Name {
+    static let sensor = Notification.Name(".sensorchanged")
+}
+
 class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDelegate, RecordIDVCDelegate {
     
     
@@ -45,13 +49,13 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
     // Settings view controller
     weak var settingsTableVC:SettingsTableVC?
     
-    
     // Controlls outlets
     @IBOutlet weak var recordTimeLabel: UILabel!
     @IBOutlet weak var recordStatusImage: UIImageView!
     @IBOutlet weak var startButton: UIButton!
     @IBOutlet weak var stopButton: UIButton!
-    
+    let cameraButton = UIButton(frame: .zero)
+    let helplabel = UILabel(frame: .zero)
     
     // For session saving
     var currentSession: Session? = nil
@@ -85,7 +89,13 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
         
         //fillTestData()
         status = .waiting
-        
+        let appear = UINavigationBarAppearance()
+        appear.configureWithDefaultBackground()
+        appear.shadowImage = nil
+        appear.backgroundColor = .red.withAlphaComponent(0.5)
+        navigationItem.standardAppearance = appear
+        navigationItem.compactAppearance = appear
+        navigationItem.scrollEdgeAppearance = appear
         // Prepare for session
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -93,6 +103,33 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
             session.activate()
         }
         
+        view.addSubview(cameraButton)
+        view.addSubview(helplabel)
+        cameraButton.translatesAutoresizingMaskIntoConstraints = false
+        cameraButton.leftAnchor.constraint(equalTo: startButton.rightAnchor, constant: 20).isActive = true
+        cameraButton.rightAnchor.constraint(equalTo: stopButton.leftAnchor, constant: -20).isActive = true
+        cameraButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        cameraButton.centerYAnchor.constraint(equalTo: startButton.centerYAnchor).isActive = true
+        cameraButton.addTarget(self, action: #selector(cameraTap), for: .touchUpInside)
+        cameraButton.setTitle("Camera", for: .normal)
+        cameraButton.layer.cornerRadius = 6
+        cameraButton.layer.masksToBounds = true
+        cameraButton.backgroundColor = .purple
+        
+        helplabel.translatesAutoresizingMaskIntoConstraints = false
+        helplabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20.0).isActive = true
+        helplabel.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20.0).isActive = true
+        helplabel.topAnchor.constraint(equalTo: recordTimeLabel.bottomAnchor, constant: 15.0).isActive = true
+        helplabel.attributedText = NSAttributedString(string: "Kamerayı açmadan start tuşuna basmayı unutma.🌈", attributes: [.font: UIFont.monospacedSystemFont(ofSize: 16.0, weight: .medium), .foregroundColor: UIColor.red])
+        helplabel.numberOfLines = 0
+        helplabel.textAlignment = .center
+
+    }
+    
+    @objc func cameraTap() {
+        let cameraVc = CameraViewController()
+        cameraVc.modalPresentationStyle = .fullScreen
+        present(cameraVc, animated: true, completion: nil)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -122,13 +159,10 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
         
     }
     
-    
-    
-    // MARK - start / stop getting motion data
+    var lastDate = Date()
     
     func startGettingData() {
         
-        // Make sure the motion hardware is available.
         if self.motion.isAccelerometerAvailable, self.motion.isGyroAvailable, self.motion.isMagnetometerAvailable {
             
             self.motion.accelerometerUpdateInterval = 1.0 / Double (currentFrequency)
@@ -139,13 +173,9 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
             self.motion.startGyroUpdates()
             self.motion.startMagnetometerUpdates()
             
-            // Configure a timer to fetch the data.
             self.motionUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/Double (currentFrequency), repeats: true, block: { (timer1) in
-                // Get the motion data.
                 if let dataAcc = self.motion.accelerometerData, let dataMag = self.motion.magnetometerData, let dataGyro = self.motion.gyroData {
-                    
-                    // let currenTime = self.returnCurrentTime()
-                    
+                                        
                     let GyroX = dataGyro.rotationRate.x
                     let GyroY = dataGyro.rotationRate.y
                     let GyroZ = dataGyro.rotationRate.z
@@ -157,12 +187,6 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
                     let MagX = dataMag.magneticField.x
                     let MagY = dataMag.magneticField.y
                     let MagZ = dataMag.magneticField.z
-                    
-                    
-                    // print ( "Gyro: \(currenTime) \(GyroX), \(GyroY), \(GyroZ)")
-                    // print ( "Acc : \(currenTime) \(AccX), \(AccY), \(AccZ)")
-                    // print ( "Mag : \(currenTime) \(MagX), \(MagY), \(MagZ)")
-                    
                     
                     let sensorOutput = SensorOutput()
                     
@@ -182,9 +206,15 @@ class CollectingDataVC: UIViewController, WCSessionDelegate, SettingsTableVCDele
                     
                     self.sensorOutputs.append(sensorOutput)
                     
+                    if Date().timeIntervalSince(self.lastDate) < 1.0 {
+                        return
+                    }
+                    self.lastDate = Date()
+                    NotificationCenter.default.post(name: Notification.Name.sensor, object: sensorOutput)
                 }
             }
-            )}
+            )
+        }
     }
     
     func stopGettingData() {

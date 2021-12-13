@@ -31,7 +31,7 @@ class SettingsTableVC: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        view.backgroundColor = .lightGray.withAlphaComponent(0.3)
         // Update start current value
         periodChangedNumber(periodSlider)
     }

@@ -21,9 +21,16 @@ class ExportDataVC: UIViewController, UITableViewDelegate, UITableViewDataSource
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        let appearance = UINavigationBarAppearance()
+        appearance.shadowImage = nil
+        appearance.backgroundColor = .red.withAlphaComponent(0.5)
+        appearance.shadowColor = .green
+        navigationItem.scrollEdgeAppearance = appearance
+        navigationItem.standardAppearance = appearance
         tableView.delegate = self
         tableView.dataSource = self
-        
+        view.backgroundColor = .white
+        tableView.backgroundColor = .clear
         attemptFetch()
     }
     

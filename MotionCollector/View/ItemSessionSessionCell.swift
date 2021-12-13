@@ -25,14 +25,14 @@ class ItemSessionCell: UITableViewCell {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM.yyyy  HH:mm:ss"
         let myString = formatter.string(from: session.date! as Date)
-        
+        contentView.backgroundColor = .white
         
         idSessionLabel.text = "\(session.id)"
         dateSessionLabel.text = myString
         durationLabel.text = session.duration
         periodLabel.text = "\(session.frequency)"
         isWalkingLabel.text = "\(session.recordID)"
-        
+        [idSessionLabel, dateSessionLabel, durationLabel, periodLabel, isWalkingLabel].forEach { $0?.textColor = .black }
         if session.type == SessionType.OnlyPhone.rawValue {
             iPhoneIcon.isHidden = false
         } else if session.type == SessionType.OnlyWatch.rawValue {
